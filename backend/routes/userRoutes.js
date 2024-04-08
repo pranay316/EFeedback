@@ -19,7 +19,7 @@ router.get('/',(req,res)=>{
 router.post("/signup",async (req,res)=>{
    const {username,password}=req.body;
    const present=await Admin.find()
-   console.log(present)
+ 
    if(present.length>0){
     return res.status(404).json({
         "present":present,
@@ -69,13 +69,13 @@ router.post("/createteacher",auth,async(req,res)=>{
 })
 
 router.post("/login",async(req,res)=>{
-    console.log("In login backend")
+
     const {username,password}=req.body
-    console.log("Usernam and pass is",username,password)
+
     const student=await Student.findOne({username})
     const teacher=await Teacher.findOne({username})
     const admin=await Admin.findOne({username})
-    console.log("student teacher and admin ",student ,teacher,admin)
+
     var type;
     
 
@@ -84,7 +84,7 @@ router.post("/login",async(req,res)=>{
             msg:"Please input the corrent username and password"
         })
     }
-    console.log("IT IS BEING DONE")
+
     let user=undefined;
     if(student){
         user=student
@@ -92,11 +92,11 @@ router.post("/login",async(req,res)=>{
     }
    else  if(teacher){
     user=teacher
-    type="teacher"
+    type="Teacher"
    }
    else{
     user=JSON.stringify(admin)
-    type="admin"
+    type="Admin"
    }
 
     const token=await jwt.sign({username,password},process.env.JWT_SECRET)
@@ -159,16 +159,44 @@ router.post("/createcourse",auth,async(req,res)=>{
     }
 })
 
+router.get("/totalcourses",auth,async(req,res)=>{
+    try{
+        const courses=await Course.find()
+        return res.status(200).json({
+            courses
+        })
+    }
+    catch(err){
+        return res.status(404).json({
+            err
+        })
+    }
+}
+)
+
+
+router.get("/teachers", auth,async (req, res) => {
+    try {
+        const teachers = await Teacher.find({}, { username: 1, _id: 0 }); // Project only the username field
+
+        return res.status(200).json({
+            teachers: teachers.map(teacher => teacher.username) // Extract only usernames
+        });
+       
+    } catch (error) {
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
 
 router.get("/allcourses",async(req,res)=>{
-    const {semester}=req.body
+    const {semester}=req.query
 
     try{
-        const courses=await Semester.findOne({name:semester}).populate('courses')
+        const semestercourses=await Semester.findOne({name:semester}).populate('courses')
 
         return res.status(200).json({
-           courses
+           semestercourses
 
         })
     }
@@ -178,12 +206,75 @@ router.get("/allcourses",async(req,res)=>{
 })
 
 
+router.get("/course/:id",async(req,res)=>{
+    const {id}=req.params
+    try{
+        const course=await Course.findById(id)
+        return res.status(200).json({
+            course
+        })
+    }catch(err){
+        return res.status(404).json({
+            err
+        })
+    }
+})
 
 
-
+router.post("/submitrating/:id", async (req, res) => {
+    const { id } =  req.params;
+    const { rating } = req.body;
  
 
+    try {
+        
+        const course = await Course.findById(id);
+        const oldrating=Number(course.rating)
+        const oldsubmission=Number(course.submission)
+        const totalRating=oldrating*oldsubmission
+        const newRating=Number(rating)
+        const newTotalRating=totalRating+newRating
+        const newSubmission=oldsubmission+1
+        const updatedRating=newTotalRating/newSubmission
 
+     
+
+        // Update the course document
+        const updatedCourse = await Course.findByIdAndUpdate(id, {
+            $set: {
+                rating: updatedRating,
+                submission: newSubmission
+            }
+        }, { new: true });
+
+        return res.status(200).json({
+            msg: "Rating has been submitted successfully",
+            course: updatedCourse
+        });
+    } catch (err) {
+        return res.status(404).json({
+            err
+        });
+    }
+});
+
+router.post("/teachercourses", async (req, res) => {
+    try {
+      
+      const { username } = req.body;
+
+      const teacher = await Teacher.findOne({ username }).populate('courses', 'name rating enrolled submission semester');
+      
+      if (!teacher) {
+        return res.status(404).json({ error: 'Teacher not found' });
+      }
+  
+      res.status(200).json({ courses: teacher.courses });
+    } catch (error) {
+      alert('Error fetching teacher courses:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
 
 
 

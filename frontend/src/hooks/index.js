@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
 import {  useNavigate } from 'react-router-dom';
 
 const useUserType = () => {
@@ -22,16 +23,18 @@ const useUserType = () => {
       }
 
       const data = await response.json();
-      setUserType(data.type);
+        setUserType(data.type);
+
       localStorage.setItem("token",data.token) // Assuming the response includes a 'userType' field
-      if(userType==="student"){
-        navigate("")
+      localStorage.setItem("username",username);
+      if(data.type==="Student"){
+        navigate("/student")
       }
-      else if(userType==="Teacher"){
-        navigate("")
+      else if(data.type==="Teacher"){
+        navigate("/teacher")
       }
       else{
-        navigate("")
+        navigate("/admin")
       }
       
       
@@ -41,7 +44,7 @@ const useUserType = () => {
             alert(error.response.data.msg);
           } else {
             // Network error or unexpected response format
-            console.error('Error authenticating user:', error.message);
+            alert('Error authenticating user:', error.message);
             alert('Failed to authenticate user. Please try again later.');
           }
     } finally {
@@ -53,3 +56,29 @@ const useUserType = () => {
 };
 
 export default useUserType;
+
+
+export const useCourse=({id})=>{
+  const [loading,setLoading]=useState(true)
+  const [course,setCourse]=useState(null)
+  useEffect(()=>{
+    axios.get(`http://localhost:4000/api/v1/course/${id}`,{
+      headers:{
+        Authorization:localStorage.getItem("token")
+      }
+    })
+    .then(response=>{
+     
+      setCourse(response.data.course)
+      setLoading(false)
+    })
+    
+},[id])
+
+return{
+  loading,
+  course
+}
+
+
+}
