@@ -9,7 +9,7 @@ const CourseCard = ({ course }) => {
 
         <p className="text-gray-600 mb-2">Semester: {semester}</p>
         <div className="flex items-center">
-          <span className="text-gray-600">Rating: {rating}</span>
+          <span className="text-gray-600">Rating: {rating.toFixed(2)}</span>
          
         </div>
       </div>
